@@ -1,233 +1,252 @@
 program fd1d_heat_explicit_prb
+ use :: types_mod, only: dp
 
-      implicit none
+ implicit none
 
-      integer t_num
-      parameter ( t_num = 201 )
-      integer x_num
-      parameter ( x_num = 21 )
-      
-      double precision cfl
-      double precision dt
-      double precision h(x_num)
-      double precision h_new(x_num)
-      ! the "matrix" stores all x-values for all t-values
-      ! remember Fortran is column major, meaning that rows are contiguous
-      double precision hmat(x_num, t_num)
-      integer i
-      integer j
-      double precision k
+ integer,parameter :: T_NUM = 201
+ integer,parameter :: X_NUM = 21
 
-      double precision :: t(t_num)
-      double precision :: t_max
-      double precision :: t_min
-      double precision :: x(x_num)
-      double precision :: x_max
-      double precision :: x_min
+ real (kind=dp) :: cfl
+ real (kind=dp) :: dt
+! real (kind=dp) :: h(x_num)
+! real (kind=dp) :: h_new(x_num)
+ real (kind=dp), dimension(:), allocatable :: h, h_new
+! the "matrix" stores all x-values for all t-values
+! remember Fortran is column major, meaning that rows are contiguous
+! real (kind=dp) :: hmat(x_num, t_num)
+ real (kind=dp), dimension(:,:), allocatable :: hmat
+ integer :: i
+ integer :: j
+ real (kind=dp) :: k
 
-      write ( *, '(a)' ) ' '
-      write ( *, '(a)' ) 'FD1D_HEAT_EXPLICIT_PRB:'
-      write ( *, '(a)' ) '  FORTRAN77 version.'
-      write ( *, '(a)' ) '  Test the FD1D_HEAT_EXPLICIT library.'
+ !real (kind=dp) :: t(t_num)
+ real (kind=dp) :: t_max
+ real (kind=dp) :: t_min
+ !real (kind=dp) :: x(x_num)
+ real (kind=dp) :: x_max
+ real (kind=dp) :: x_min
+ real (kind=dp), dimension(:), allocatable :: t, x
 
-      write ( *, '(a)' ) ' '
-      write ( *, '(a)' ) 'FD1D_HEAT_EXPLICIT_PRB:'
-      write ( *, '(a)' ) '  Normal end of execution.'
-      write ( *, '(a)' ) ' '
+ write (*, '(a)') ' '
+ write (*, '(a)') 'FD1D_HEAT_EXPLICIT_PRB:'
+ write (*, '(a)') '  FORTRAN77 version.'
+ write (*, '(a)') '  Test the FD1D_HEAT_EXPLICIT library.'
 
-      write ( *, '(a)' ) ' '
-      write ( *, '(a)' ) 'FD1D_HEAT_EXPLICIT_TEST01:'
-      write ( *, '(a)' ) '  Compute an approximate solution to the time-dependent'
-      write ( *, '(a)' ) '  one dimensional heat equation:'
-      write ( *, '(a)' ) ' '
-      write ( *, '(a)' ) '    dH/dt - K * d2H/dx2 = f(x,t)'
-      write ( *, '(a)' ) ' '
-      write ( *, '(a)' ) '  Run a simple test case.'
+ write (*, '(a)') ' '
+ write (*, '(a)') 'FD1D_HEAT_EXPLICIT_PRB:'
+ write (*, '(a)') '  Normal end of execution.'
+ write (*, '(a)') ' '
 
-      ! heat coefficient
-      k = 0.002D+00
+ write (*, '(a)') ' '
+ write (*, '(a)') 'FD1D_HEAT_EXPLICIT_TEST01:'
+ write (*, '(a)') '  Compute an approximate solution to the time-dependent'
+ write (*, '(a)') '  one dimensional heat equation:'
+ write (*, '(a)') ' '
+ write (*, '(a)') '    dH/dt - K * d2H/dx2 = f(x,t)'
+ write (*, '(a)') ' '
+ write (*, '(a)') '  Run a simple test case.'
 
-      ! the x-range values
-      x_min = 0.0D+00
-      x_max = 1.0D+00
-      ! x_num is the number of intervals in the x-direction
-      call r8vec_linspace( x_num, x_min, x_max, x )
+! allocate variables
+ allocate( h(1:X_NUM) )
+ allocate( h_new(1:X_NUM) )
+ allocate( hmat(1:X_NUM,1:T_NUM) )
+ allocate( t(1:T_NUM) )
+ allocate( x(1:X_NUM) )
 
-      ! the t-range values. integrate from t_min to t_max
-      t_min = 0.0D+00
-      t_max = 80.0D+00
+! heat coefficient
+ k = 0.002e+00_dp
 
-      ! t_num is the number of intervals in the t-direction
-      dt = ( t_max - t_min ) / dble( t_num - 1 )
-      call r8vec_linspace( t_num, t_min, t_max, t )
+! the x-range values
+ x_min = 0.0e+00_dp
+ x_max = 1.0e+00_dp
+! x_num is the number of intervals in the x-direction
+ call r8vec_linspace(x_min, x_max, x)
 
-      ! get the CFL coefficient
-      call fd1d_heat_explicit_cfl( k, t_num, t_min, t_max, x_num, x_min, x_max, cfl )
+! the t-range values. integrate from t_min to t_max
+ t_min = 0.0e+00_dp
+ t_max = 80.0e+00_dp
 
-     if ( 0.5D+00 .le. cfl ) then
-        write ( *, '(a)' ) ' '
-        write ( *, '(a)' ) 'FD1D_HEAT_EXPLICIT_CFL - Fatal error!'
-        write ( *, '(a)' ) '  CFL condition failed.'
-        write ( *, '(a)' ) '  0.5 <= K * dT / dX / dX = CFL.'
-        stop
-      end if
+! t_num is the number of intervals in the t-direction
+ dt = (t_max-t_min)/real(t_num-1, kind=dp)
+ call r8vec_linspace(t_min, t_max, t)
 
-      ! set the initial condition
-      do j = 1, x_num
-        h(j) = 50.0D+00
-      end do
+! get the CFL coefficient
+ call fd1d_heat_explicit_cfl(k, t_num, t_min, t_max, x_num, x_min, x_max, cfl)
 
-      ! set the bounday condition
-      h(1) = 90.0D+00
-      h(x_num) = 70.0D+00
+ if (0.5e+00_dp<=cfl) then
+  write (*, '(a)') ' '
+  write (*, '(a)') 'FD1D_HEAT_EXPLICIT_CFL - Fatal error!'
+  write (*, '(a)') '  CFL condition failed.'
+  write (*, '(a)') '  0.5 <= K * dT / dX / dX = CFL.'
+  stop
+ end if
 
-      ! initialise the matrix to the initial condition
-      do i = 1, x_num
-        hmat(i, 1) = h(i)
-      end do
+! set the initial condition
+ do j = 1, x_num
+  h(j) = 50.0e+00_dp
+ end do
 
-      ! the main time integration loop 
-      do j = 2, t_num
-        call fd1d_heat_explicit( x_num, x, t(j-1), dt, cfl, h, h_new )
+! set the bounday condition
+ h(1) = 90.0e+00_dp
+ h(x_num) = 70.0e+00_dp
 
-        do i = 1, x_num
-          hmat(i, j) = h_new(i)
-          h(i) = h_new(i)
-        end do
-      end do
+! initialise the matrix to the initial condition
+ do i = 1, x_num
+  hmat(i, 1) = h(i)
+ end do
 
-      ! write data to files
-      call r8mat_write( 'h_test01.txt', x_num, t_num, hmat )
-      call r8vec_write( 't_test01.txt', t_num, t )
-      call r8vec_write( 'x_test01.txt', x_num, x )
+! the main time integration loop 
+ do j = 2, t_num
+  call fd1d_heat_explicit(x, t(j-1), dt, cfl, h, h_new)
 
-    contains
+  do i = 1, x_num
+   hmat(i, j) = h_new(i)
+   h(i) = h_new(i)
+  end do
+ end do
 
-    function func( j, x_num, x ) result ( d )
-      implicit none
-      
-      integer :: j, x_num
-      double precision :: d
-      double precision :: x(x_num)
+! write data to files
+ call r8mat_write('h_test01.txt', hmat)
+ call r8vec_write('t_test01.txt', t)
+ call r8vec_write('x_test01.txt', x)
 
-      d = 0.0D+00
-    end function func
+ deallocate( h, h_new, hmat, t, x)
 
-    subroutine fd1d_heat_explicit( x_num, x, t, dt, cfl, h, h_new )
-      implicit none
+contains
 
-      integer :: x_num
+ function func(j, x) result (d)
+  implicit none
 
-      double precision :: cfl
-      double precision :: dt
-      double precision :: h(x_num)
-      double precision :: h_new(x_num)
-      integer :: j
-      double precision :: t
-      double precision :: x(x_num)
-      double precision :: f(x_num)
+  integer,intent(in) :: j
+  real (kind=dp) :: d
+  real (kind=dp), dimension(:), intent(in) :: x
 
-      do j = 1, x_num
-        f(j) = func( j, x_num, x )
-      end do
+  d = 0.0e+00_dp
+ end function
 
-      h_new(1) = 0.0D+00
+ subroutine fd1d_heat_explicit(x, t, dt, cfl, h, h_new)
+  implicit none
 
-      do j = 2, x_num - 1
-        h_new(j) = h(j) + dt * f(j) + cfl * ( h(j-1) - 2.0D+00 * h(j) + h(j+1) )
-      end do
+!  integer,intent(in) :: x_num
 
-      ! set the boundary conditions again
-      h_new(1) = 90.0D+00
-      h_new(x_num) = 70.0D+00
-    end subroutine fd1d_heat_explicit
+  real (kind=dp), intent(in) :: cfl
+  real (kind=dp), intent(in) :: dt
+  real (kind=dp), dimension(:), intent(in) :: h
+  real (kind=dp), dimension(:), intent(out) :: h_new
+  integer :: j
+  real (kind=dp), intent(in) :: t
+  real (kind=dp), dimension(:), intent(in) :: x
+  real (kind=dp) :: f(size(x))
 
-    subroutine fd1d_heat_explicit_cfl( k, t_num, t_min, t_max, x_num, x_min, x_max, cfl )
+  do j = 1, x_num
+   f(j) = func(j, x)
+  end do
 
-      implicit none
+  h_new(1) = 0.0e+00_dp
 
-      double precision :: cfl
-      double precision :: dx
-      double precision :: dt
-      double precision :: k
-      double precision :: t_max
-      double precision :: t_min
-      integer :: t_num
-      double precision :: x_max
-      double precision :: x_min
-      integer :: x_num
+  do j = 2, x_num - 1
+   h_new(j) = h(j) + dt*f(j) + cfl*(h(j-1)-2.0e+00_dp*h(j)+h(j+1))
+  end do
 
-      dx = ( x_max - x_min ) / dble( x_num - 1 )
-      dt = ( t_max - t_min ) / dble( t_num - 1 )
+! set the boundary conditions again
+  h_new(1) = 90.0e+00_dp
+  h_new(x_num) = 70.0e+00_dp
+ end subroutine
 
-      cfl = k * dt / dx / dx
+ subroutine fd1d_heat_explicit_cfl(k, t_num, t_min, t_max, x_num, x_min, &
+   x_max, cfl)
 
-      write ( *, '(a)' ) ' '
-      write ( *, '(a,g14.6)' ) '  CFL stability criterion value = ', cfl
+  implicit none
 
-    end subroutine fd1d_heat_explicit_cfl
+  real (kind=dp),intent(out) :: cfl
+  real (kind=dp) :: dx
+  real (kind=dp) :: dt
+  real (kind=dp),intent(in) :: k
+  real (kind=dp),intent(in) :: t_max
+  real (kind=dp),intent(in) :: t_min
+  integer,intent(in) :: t_num
+  real(kind=dp), intent(in) :: x_max
+  real (kind=dp),intent(in) :: x_min
+  integer,intent(in) :: x_num
 
-    subroutine r8mat_write( output_filename, m, n, table )
-      implicit none
+  dx = (x_max-x_min)/real(x_num-1, kind=dp)
+  dt = (t_max-t_min)/real(t_num-1, kind=dp)
 
-      integer :: m
-      integer :: n
+  cfl = k*dt/dx/dx
 
-      integer :: j
-      character * ( * ) :: output_filename
-      integer :: output_unit_id
-      character * ( 30 ) :: string 
-      double precision :: table(m,n)
- 
-      output_unit_id = 10
-      open( unit = output_unit_id, file = output_filename, status = 'replace' )
+  write (*, '(a)') ' '
+  write (*, '(a,g14.6)') '  CFL stability criterion value = ', cfl
 
-      write ( string, '(a1,i8,a1,i8,a1,i8,a1)' ) '(', m, 'g', 24, '.', 16, ')'
+ end subroutine
 
-      do j = 1, n
-        write ( output_unit_id, string ) table(1:m, j)
-      end do
+ subroutine r8mat_write(output_filename, table)
+  implicit none
 
-      close( unit = output_unit_id )
-    end subroutine r8mat_write
+  integer :: m
+  integer :: n
 
-    subroutine r8vec_linspace ( n, a_first, a_last, a )
+  integer :: j
+  character (len=*), intent(in) :: output_filename
+  integer :: output_unit_id
+  character (len=30) :: string
+  real (kind=dp), dimension(:,:), intent(inout) :: table
 
-      implicit none
+  m = size(table(:,:), 1)
+  n = size(table(:,:), 2)
 
-      integer :: n
-      double precision :: a(n)
-      double precision :: a_first
-      double precision :: a_last
-      integer :: i
+  output_unit_id = 10
+  open (unit=output_unit_id, file=output_filename, status='replace')
 
-      do i = 1, n
-        a(i) = ( dble( n - i ) * a_first + dble( i - 1 ) * a_last ) / dble( n - 1 )
-      end do
+  write (string, '(a1,i8,a1,i8,a1,i8,a1)') '(', m, 'g', 24, '.', 16, ')'
 
-    end subroutine r8vec_linspace
+  do j = 1, n
+   write (output_unit_id, string) table(1:m, j)
+  end do
 
-    subroutine r8vec_write ( output_filename, n, x )
+  close (unit=output_unit_id)
+ end subroutine
 
-      implicit none
+ subroutine r8vec_linspace(a_first, a_last, a)
 
-      integer :: m
-      integer :: n
+  implicit none
 
-      integer :: j
-      character * ( * ) :: output_filename
-      integer :: output_unit_id
-      double precision :: x(n)
+  integer :: n
+  real (kind=dp), dimension(:), intent(inout) :: a
+  real (kind=dp), intent(in) :: a_first
+  real (kind=dp), intent(in) :: a_last
+  integer :: i
 
-      output_unit_id = 11
-      open( unit = output_unit_id, file = output_filename, status = 'replace' )
+  n=size(a)
 
-      do j = 1, n
-        write ( output_unit_id, '(2x,g24.16)' ) x(j)
-      end do
+  do i = 1, n
+   a(i) = (real(n-i,kind=dp)*a_first+real(i-1,kind=dp)*a_last)/ &
+     real(n-1, kind=dp)
+  end do
 
-      close ( unit = output_unit_id )
-  end subroutine r8vec_write
+ end subroutine
 
-end program fd1d_heat_explicit_prb
+ subroutine r8vec_write(output_filename, x)
 
+  implicit none
+
+  integer :: m
+  integer :: n
+
+  integer :: j
+  character (len=*),intent(in) :: output_filename
+  integer :: output_unit_id
+  real (kind=dp), dimension(:), intent(inout) :: x
+
+  n = size(x)
+
+  output_unit_id = 11
+  open (unit=output_unit_id, file=output_filename, status='replace')
+
+  do j = 1, n
+   write (output_unit_id, '(2x,g24.16)') x(j)
+  end do
+
+  close (unit=output_unit_id)
+ end subroutine
+
+end program
