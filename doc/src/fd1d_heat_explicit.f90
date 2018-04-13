@@ -8,7 +8,6 @@ program fd1d_heat_explicit_prb
  use :: CFL_mod
  use :: IO_mod
  use :: Solver_mod
- use :: plplot
 
  implicit none
 
@@ -35,12 +34,6 @@ program fd1d_heat_explicit_prb
  real (kind=dp) :: x_max
  real (kind=dp) :: x_min
  real (kind=dp), dimension(:), allocatable :: t, x
-
- character (len=12) :: image_name
- character (len=10) :: plot_name
-
-123 format('image',i3.3,'.png')
-125 format('time=',F5.1)
 
  write (*, '(a)') ' '
  write (*, '(a)') 'FD1D_HEAT_EXPLICIT_PRB:'
@@ -118,25 +111,12 @@ program fd1d_heat_explicit_prb
    hmat(i, j) = h_new(i)
    h(i) = h_new(i)
   end do
-
-  if (mod(j,10) == 0) then
-    write(image_name,123) j/10
-    call PLSDEV('pngcairo')
-    call PLSFNAM(image_name)
-    call PLINIT()
-    call plenv(x_min,x_max,50.0e+00_dp,90.00e+00_dp,0,3)
-    write(plot_name,125) t(j)
-    call PLLAB('x','h', plot_name)
-    call PLLINE(x(:),h_new(:))
-    call PLEND()
-  end if
-
-  end do
+ end do
 
 ! write data to files
- call r8mat_write(x, t, 'h_test01.nc', hmat)
-! call r8vec_write('t_test01.txt', t)
-! call r8vec_write('x_test01.txt', x)
+ call r8mat_write('h_test01.txt', hmat)
+ call r8vec_write('t_test01.txt', t)
+ call r8vec_write('x_test01.txt', x)
 
  deallocate( h, h_new, hmat, t, x)
 
