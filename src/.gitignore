@@ -1,0 +1,8 @@
+*.o
+*.mod
+*.exe
+*.nc
+*.dat
+*.a
+*.mp4
+doc/
